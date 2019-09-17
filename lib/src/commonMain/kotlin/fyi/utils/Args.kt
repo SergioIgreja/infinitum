@@ -4,6 +4,7 @@ package fyi.utils
  * Singleton class that contains helpful methods that create arguments used constantly by the SDK.
  */
 object Args {
+    var identity : String? = null
 
     /**
      * All the [arguments] received from the user are validated in this function.
@@ -87,6 +88,10 @@ object Args {
         val result = mutableMapOf<String, String>()
 
         result["Authorization"] = "Bearer $accessToken"
+
+        if (identity != null) {
+            result["identity"] = identity!!
+        }
 
         return result
     }
