@@ -1,0 +1,25 @@
+CREATE TABLE auth_request (
+	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	date TEXT NOT NULL,
+	image TEXT NOT NULL,
+	domain TEXT NOT NULL,
+	apptoken TEXT NOT NULL,
+	position TEXT,
+	proximity TEXT,
+	action TEXT,
+	data TEXT
+);
+
+selectAll:
+SELECT *
+FROM auth_request;
+
+insert:
+INSERT INTO auth_request (date, image, domain, apptoken, position, proximity, action, data)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteById:
+DELETE
+FROM auth_request
+WHERE id = ?;
+
