@@ -75,7 +75,6 @@ dependencies {
 
     //WEBSOCKET
     implementation 'com.github.nkzawa:socket.io-client:0.6.0'
-    androidTestImplementation "io.mockk:mockk:1.9.3"
 }
 
 
@@ -104,7 +103,6 @@ kotlin {
             dependencies {
         		implementation kotlin('test-common')
         		implementation kotlin('test-annotations-common')
-                implementation "io.mockk:mockk-common:1.9.3"
             }
         }
         androidMain {

@@ -20,7 +20,8 @@ data class UserResponse(
     val email: String = "",
     val phone: String? = "",
     val avatar: String? = "",
-    val info: Info? = null
+    val info: Info? = null,
+    val relations: List<UserResponse>? = null
 )
 
 /**

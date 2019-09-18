@@ -69,7 +69,6 @@ data class Apis(private var mBaseUrl: String, private val mNetworkService: Netwo
             method = HttpMethod.Post,
             networkService = mNetworkService,
             onSuccess = {
-                print(it)
                 onSuccess()
             },
             onFailure = onFailure
@@ -134,7 +133,7 @@ data class Apis(private var mBaseUrl: String, private val mNetworkService: Netwo
             method = HttpMethod.Get,
             networkService = mNetworkService,
             onSuccess = {
-                print(it)
+                println("INFINITUM - $it")
                 val apiList = Json.nonstrict.parse(ApiResponse.serializer().list, it)
                 onSuccess(apiList)
             },
@@ -170,7 +169,6 @@ data class Apis(private var mBaseUrl: String, private val mNetworkService: Netwo
             method = HttpMethod.Get,
             networkService = mNetworkService,
             onSuccess = {
-                print(it)
                 val api = Json.nonstrict.parse(ApiResponse.serializer(), it)
                 onSuccess(api)
             },

@@ -9,7 +9,6 @@ import fyi.repository.Repository
 import fyi.repository.RequestLauncher
 import fyi.utils.Args
 import io.ktor.http.HttpMethod
-import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.list
 
@@ -136,7 +135,6 @@ data class Roles(private var mBaseUrl: String, private val mNetworkService: Netw
      * The [onSuccess] returns a [RolesResponse] object.
      * The [onFailure] returns an [ErrorResponse] that contains information about what went wrong.
      */
-    @UnstableDefault
     fun getRoleById(
         roleId: Int,
         onSuccess: (RolesResponse) -> Unit,
@@ -165,6 +163,7 @@ data class Roles(private var mBaseUrl: String, private val mNetworkService: Netw
             onFailure = onFailure
         )
     }
+
 
     /**
      * Updates a Role by it's [roleId] with information from the [builder].

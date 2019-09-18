@@ -4,7 +4,8 @@ package fyi.utils
  * Singleton class that contains helpful methods that create arguments used constantly by the SDK.
  */
 object Args {
-    var identity : String? = null
+
+    var identity: String? = null
 
     /**
      * All the [arguments] received from the user are validated in this function.
@@ -20,7 +21,7 @@ object Args {
                 }
 
                 is Int -> {
-                    if (argument < 0) return false
+                    if (argument <= 0) return false
                 }
 
                 is Pair<*,*> -> {
@@ -31,6 +32,10 @@ object Args {
                     argument.forEach {
                         if ((it as String).isBlank()) return false
                     }
+                }
+
+                is OptionalParameters -> {
+
                 }
             }
         }
@@ -89,9 +94,7 @@ object Args {
 
         result["Authorization"] = "Bearer $accessToken"
 
-        if (identity != null) {
-            result["identity"] = identity!!
-        }
+        if (identity != null) result["identity"] = identity!!
 
         return result
     }

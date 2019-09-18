@@ -15,6 +15,7 @@ import android.content.SharedPreferences
 actual class PreferenceEditor actual constructor(applicationContext: ApplicationContext) {
 
     private val SHARED_PREFERENCES_NAME = "InfinitumPreferences"
+
     private val mApplicationContext: ApplicationContext
     private val mSharedPreferences: SharedPreferences
     private val mEditor: SharedPreferences.Editor

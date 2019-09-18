@@ -19,13 +19,15 @@ import pt.fyi.db.MyDatabase
  * @property mAuthRequestDao AuthRequestDao that will handle all the requests regarding Auth_Requests.
  */
 data class Repository(private val applicationContext: ApplicationContext) {
-    private val mPreferenceEditor: PreferenceEditor = PreferenceEditor(applicationContext)
-    private val mSqlDriver: SqlDriver = getSqlDriver(applicationContext, MyDatabase.Schema, "InfinitumDB.db")
+    private val mPreferenceEditor: PreferenceEditor
+    private val mSqlDriver: SqlDriver
     private val mDatabase: MyDatabase
     private lateinit var mAuthRequestDao: AuthRequestDao
 
 
     init {
+        mPreferenceEditor = PreferenceEditor(applicationContext)
+        mSqlDriver = getSqlDriver(applicationContext, MyDatabase.Schema, "InfinitumDB.db")
         mDatabase = MyDatabase(mSqlDriver)
     }
 

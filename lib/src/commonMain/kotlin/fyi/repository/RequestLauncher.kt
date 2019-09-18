@@ -4,9 +4,7 @@ import fyi.exceptions.ErrorResponse
 import fyi.exceptions.Errors
 import fyi.utils.Dispatcher
 import io.ktor.http.HttpMethod
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 /**
@@ -19,7 +17,7 @@ object RequestLauncher {
      * [networkService] injected to facilitate testing.
      * Executes [onSuccess] if the request is successful, [onFailure] otherwise.
      */
-     fun launch (
+     fun launch(
         url: String,
         headerParameters: MutableMap<String, String>? = null,
         bodyParameters: MutableMap<String, String>? = null,
@@ -29,7 +27,7 @@ object RequestLauncher {
         onFailure: (ErrorResponse) -> Unit
     ) {
 
-        GlobalScope.launch(Dispatchers.Default) {
+        GlobalScope.launch(Dispatcher.ApplicationDispatcher) {
             val response = networkService.request(url,headerParameters,bodyParameters,method)
 
             when (response) {

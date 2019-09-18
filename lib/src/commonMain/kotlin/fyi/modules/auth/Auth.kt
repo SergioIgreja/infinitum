@@ -106,10 +106,8 @@ class Auth(
 
             body.putAll(photoOptionalParameters.toMap())
 
-            val header = Args.createMap(
-                Pair("authorization", "Bearer $authToken"),
-                Pair("AppToken", appToken)
-            )
+            val header = Args.createAuthorizationHeader(authToken)
+            header["AppToken"] = appToken
 
             RequestLauncher.launch(
                 url = url,
@@ -169,10 +167,8 @@ class Auth(
 
             body.putAll(optionalParametersBuilder.build().toMap())
 
-            val header = Args.createMap(
-                Pair("authorization", "Bearer $authToken"),
-                Pair("AppToken", appToken)
-            )
+            val header = Args.createAuthorizationHeader(authToken)
+            header["AppToken"] = appToken
 
             RequestLauncher.launch(
                 url = url,

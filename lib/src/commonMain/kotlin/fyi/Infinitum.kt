@@ -77,6 +77,7 @@ class Infinitum {
             }
 
             Args.identity = mRepository.getDeviceId()
+
         }catch (e: Exception) {
             throw Exception("Error instantiating Infinitum. Make sure your context is not null.")
         }

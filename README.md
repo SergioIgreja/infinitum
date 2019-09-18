@@ -1,142 +1,759 @@
-# How to create a new module
+# Mobile SDK for Infinitum
 
-1. Create a new package under fyi.modules with the name of the module.
-1. Inside the fyi.modules.<new-package> create a new package called models that will contain all relevant models.
-1. Create a new File with the name of the module that will contain all the requests.
-1. Each request should have a onSuccess and onFailure lambdas that will be executed after the response from the server.
-1. After validating the data inserted by the user, create the header and body maps of the request using the Args class.
-1. Then use the class RequestLauncher to send the request. Specify the type of the request, Put, Post, etc.. and the header and body maps.
-1. You should then parse the response from the server using KotlinxSerialization to the classes defined in the models package in case of a success. If an error occurred parse the response to a ErrorResponse object.
-1. Return to the user via the callback lambdas.
+### Table of Contents
+1. [Installation](#Installation)
+	1. [iOS](#iOS)
+	1. [Android](#Android)
+1. [Usage](#Usage)
+	1. [iOS](#iOS-1)
+	1. [Android-Kotlin](#Android---Kotlin)
+	1. [Android-Java](#Android---Java)
+1. [Modules](#Modules)
+	1. [Infinitum](#Infinitum)
+	1. [Apps](#Apps)
+	1. [Auth](#Auth)
+	1. [DevicePosition](#DevicePosition)
+	1. [Users](#Users)
+	1. [Utils](#Utils)
+1. [Responses](#Responses)
+	1. [ErrorResponse](#ErrorResponse)
+	1. [ConfigResponse](#ConfigResponse)
+	1. [InitResponse](#InitResponse)
+	1. [Apps](#Apps-1)
+	1. [PhotoResponse](#PhotoResponse)
+	1. [DevicePositionResponse](#DevicePositionResponse)
+	1. [UserResponse](#UserResponse)
+	
+---
 
-# How to submit a new version
+## Installation
 
-## iOS
+### iOS
 
-To submit a new version to Cocoapods, commit changes to github with the desired Tag.
-Then, on the podspec file change the version of spec.version and the tag in spec.source to the same as the tag of your last commit.
+The Infinitum SDK can be added to the project using [Cocoapods](https://cocoapods.org/).
 
-Check if your podspec is valid:
-
-```
-
- pod spec lint YOUR_FILE.podspec
-
-```
-
-If this command succeed, you can proceed to upload your framework to cocoapods, otherwise you must fix the issues.
-
-If its the first time you are uploading the library first you have to register yourself with the command:
-
-```
-
- pod trunk register YOUR_GITHUB_EMAIL 'YOUR_GITHUB_USERNAME'
-
-```
-
-If you are already registered you may ignored the step above.
-
-After all this validations were completed, you are able to submit your framework to Cocoapods, for that purpose use the following command:
+First you have to add Cocoapods to your project. Simply go to the terminal, navigate to your project folder and type
+the following command:
 
 ```
-
- pod trunk push YOUR_FILE.podspec
-
+ pod init
 ```
 
-### How to add a tag to your repository
+Then go to the generated Podfile and add the following pod:
 
-You need to have the repository syncronized with github.
+```ruby
+ pod 'InfinitumSDKMobile'
+```
 
-#### Using Sourcetree
+By default, the latest version will be used.
 
-On the commit you want to publish, right click it, select 'Tag...', select an existing Tag or create a new one, make sure you select the push tag option and press 'Add'.
+*Note that there is no support for emulators as of yet.*
+
+### Android
+
+An android application that uses Java requires a few configurations before being able to use Infinitum.
+Since Infinitum is a multiplatform library that uses Kotlin, it becomes necessary for your application to enable Kotlin. 
+The easiest way to accomplish this is to create a random Kotlin file in your project. Then, the Android Studio IDE will prompt you to configure Kotlin. Press 'configure', then 'All modules containing Kotlin files' and wait for the project to sync.
+The second step is to add the following lines to your application build.gradle, inside the android task:
+```Groovy
+compileOptions {
+	sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
+}
+```
+This will allow your application to use Java 1.8 which introduces lambdas to java. This allows us to use functions as callbacks.
+
+#### To import the Infinitum SDK to your project you will need to:
+
+1. Add the [Jitpack repository](https://jitpack.io/#infinitum-dev/mobile-sdk) to your project build.gradle file
+```
+allprojects {
+	repositories {
+		...
+		maven { url 'https://jitpack.io' }
+	}
+}
+```
+2. Add the SDK dependency to your application build.gradle file:
+```groovy
+dependencies {
+	implementation('com.github.infinitum-dev:mobile-sdk:latest-version@aar') {
+		transitive = true
+	}
+}
+```
+
+3. Sometimes the build may fail because of duplicate META-INF files. To solve this issue simply add the following lines to the android task in your application build.gradle file:
+
+```groovy
+packagingOptions {
+	exclude 'META-INF/*.kotlin_module'
+}
+```
 
 ---
 
-#### Using Git
+## Usage
 
-Note: if you are not on the desired branch you can change it using the command:
+Every call to our API requires two callbacks, onSuccess and onFailure. The onSuccess lambda will require different parameters depending on the method being called. For example config will require a lambda that receives a [ConfigResponse](#ConfigResponse) object, doInit will require a [InitResponse](#InitResponse), etc. On the other hand, onFailure will always require a lambda with an [ErrorResponse](#ErrorResponse) parameter.
 
-````
-			git checkout -b BRANCH_NAME <tag_name>
-````
+Infinitum has various modules that accomplish different goals. To use these modules you need to initialize the sdk by using:
 
-Using the terminal, add your changes using 
+[iOS](#iOS-1) [Android Kotlin](#Android---Kotlin) [Android Java](#Android---Java)
 
-````
-			git add -A
-````
+### iOS
 
-then commit your changes to the respective branch.
+```Swift
+let infinitum = Infinitum.Companion().getInstance(applicationContext: ApplicationContext())
+infinitum.config(
+	domain: "demo.infinitum.app", 
+	appType: "example-appType", 
+	onSuccess: { (response) in self.doInit(configResponse: response)}, 
+	onFailure: { (error) in print(error) })
+```
+```Swift
+func doInit(configResponse: ConfigResponse) {
+        infinitum.doInit(
+		domain: "demo.infinitum.app", 
+		appToken: configResponse.apps.first?.token ?? "default",
+		onSuccess: photo, //Another way to send a lambda
+		onFailure: {(error) in print(error)}),
+		eventBuilder: NodeEvent.NodeEventBuilder().addEvent(event: "device-licensed", onEvent: {() in print("LICENSED")}))
+}
+```
+Since this is a multiplatform SDK and we require android apps to send their Context, it was necessary to create a class called ApplicationContext with different implementations for iOS and Android. The iOS implementation does not require any parameters.
 
-````
-			git commit -m "YOUR MESSAGE"
-````
+After initialization the SDK will remember your session so you don't need to repeat these steps every time your application starts.
 
-create a new tag for your release:
+All the modules are available through the Infinitum class.
+Here's an example that utilizes Auth's module photo method:
 
-````
-			git tag 'YOUR_TAG'
-````
+```Swift
+func photo() {
+	let image = UIImage(imageLiteralResourceName: "resource")
+        let image64 = Utils().convertImageToBase64(image: image)
+        
+    	infinitum.auth()?.photo(
+		photoB64: image64, 
+		onSuccess: {(response) in print(response)}, 
+		onFailure: {(error) in print(error)})
+}
+```
 
-and finally push your changes with the respective tags
+### Android - Kotlin
 
-````
-			git push origin --tags
-````
+```Kotlin
+infinitum = Infinitum.Companion.getInstance(ApplicationContext(baseContext))
+infinitum.config(
+	"demo.infinitum.app",
+        "example-appType",
+	onSuccess = ::doInit,
+	onFailure = { error ->
+                //error handling
+                Log.d(TAG, error.toString())
+	})
+```
+
+```Kotlin
+fun doInit(configResponse: ConfigResponse) {
+	val app = configResponse.apps[0]
+
+        infinitum.init(
+            domain = "demo.infinitum.app",
+            appToken = app.token,
+            onSuccess = ::countUsers,
+            onFailure = ::onError,
+            eventBuilder = NodeEvent.NodeEventBuilder().
+                addEvent("device-licensed", { println("----------LICENSED----------")}).
+                addEvent("device-unlicensed", {println("----------UNLICENSED----------")})
+        )
+}
+```
+Since this is a multiplatform SDK and we require android apps to send their Context, it was necessary to create a class called ApplicationContext with different implementations for iOS and Android. The Android implementation requires the context to be sent as a parameter.
+
+After initialization the SDK will remember your session so you don't need to repeat these steps every time your application starts.
+
+All the modules are available through the Infinitum class.
+Here's an example that utilizes App's module getAppById method:
+
+```Kotlin
+fun getAppById(initResponse: InitResponse) {
+	infinitum.apps()?.getAppById(
+		40,
+            	onSuccess = { app ->
+                	println(app)
+            	},
+            	onFailure = { errorResponse ->
+                	Log.d(TAG, errorResponse.toString())
+            	})
+}
+```
+
+### Android - Java
+
+```Java
+Infinitum infinitum = Infinitum.Companion.getInstance(new ApplicationContext(this));
+infinitum.config(
+	"demo.infinitum.app",
+	"example-appType",
+	this::configSuccess,
+	this::error
+);
+```
+
+```Java
+private Unit configSuccess(ConfigResponse response) {
+	infinitum.init(
+                "demo.infinitum.app",
+                response.getApps().get(0).getToken(),
+                this::initSuccess,
+                errorResponse -> {
+                    Log.d(TAG, errorResponse.toString());
+                    return Unit.INSTANCE;
+                }
+        );
+        return Unit.INSTANCE;
+}
+```
+Note that all the functions that sent as a parameter (callbacks) need to end with return Unit.INSTANCE. This is because Kotlin doesn't have Void like Java, but Unit is basically the same thing.
+
+Since this is a multiplatform SDK and we require android apps to send their Context, it was necessary to create a class called ApplicationContext with different implementations for iOS and Android. The Android implementation requires the context to be sent as a parameter.
+
+After initialization the SDK will remember your session so you don't need to repeat these steps every time your application starts.
+
+All the modules are available through the Infinitum class.
+Here's an example that utilizes Auth's module photo method:
+
+```Java
+private Unit photo(InitResponse response) {
+	Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.resource);
+
+        String image = Utils.INSTANCE.convertImageToBase64(bitmap);
+
+        infinitum.auth().photo(
+                image,
+                photoResponse -> {
+                    System.out.println(photoResponse.toString());
+                    return Unit.INSTANCE;
+                },
+                errorResponse -> {
+                    System.out.println(errorResponse.toString());
+                    return Unit.INSTANCE; });
+
+        return Unit.INSTANCE;
+}
+```
 
 ---
 
-Some examples of common tags for android libraries are: '0.0.1', '1.0.0', '3.1.2'
+## Modules
 
-## Android
+### Infinitum
 
-To submit a new version to Jitpack, commit changes to github to the desired TAG.
-Jitpack will build it and publish all the builds for any tag you have.
+Our main class, Infinitum, contains the functions to initialize the sdk and references to all the available modules.  
 
-### How to add a tag to your repository
+```Kotlin
+    	fun config(
+		domain: String,
+               	appType: String,
+               	onSuccess: (ConfigResponse) -> Unit,
+               	onFailure: (ErrorResponse) -> Unit
+	)
+ ```
+domain - Domain of the company. e.g: demo.infinitum.app to use the demo.  
+appType - Type of the application you want to connect.  
+onSuccess - Function that will be executed if the request succeeds. Returns a [ConfigResponse](#ConfigResponse) object that contains a list of applications of the given type.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
 
-You need to have the repository syncronized with github.
+```Kotlin
+	fun init(
+		domain: String,
+             	appToken: String,
+             	onSuccess: (InitResponse) -> Unit,
+             	onFailure: (ErrorResponse) -> Unit,
+		eventBuilder: NodeEventBuilder
+	)
+```
+domain - Domain of the company. e.g: demo.infinitum.app to use the demo.   
+appToken - Application token.  
+eventBuilder - Events to be listened to by the SDK's websocket. Expects a [NodeEventBuilder](#NodeEventBuilder) object. (Event examples: "device-licensed", "device-unlicensed").  
+onSuccess - Function that will be executed if the request succeeds. Returns a [InitResponse](#InitResponse) object that contains more information about the Application chosen.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
 
-#### Using Sourcetree
+```Kotlin
+	fun apps(): Apps?
+```
+Returns the [Apps module](#Apps) if the SDK has been initialized, otherwise returns null.  
 
-On the commit you want to publish, right click it, select 'Tag...', select an existing Tag or create a new one, make sure you select the push tag option and press 'Add'.
+```Kotlin
+	fun auth(): Auth?
+```
+Returns the [Auth module](#Auth) if the SDK has been initialized, otherwise returns null.  
+
+```Kotlin
+	fun devicePosition(): DevicePosition?
+```
+Returns the [DevicePosition module](#DevicePosition) if the SDK has been initialized, otherwise returns null.  
+
+```Kotlin
+	fun users(): Users?
+```
+Returns the [Users module](#Users) if the SDK has been initialized, otherwise returns null.
+
+```Kotlin
+	fun devices(): Devices?
+```
+Returns the [Devices module](#Devices) if the SDK has been initialized, otherwise returns null.
+
+```Kotlin
+	fun deviceInput(): DeviceInput?
+```
+Returns the [DeviceInput module](#DeviceInput) if the SDK has been initialized, otherwise returns null.
+
+```Kotlin
+	fun requests(): Requests?
+```
+Returns the [Requests module](#Requests) if the SDK has been initialized, otherwise returns null.
+
+```Kotlin
+	fun roles(): Roles?
+```
+Returns the [Roles module](#Roles) if the SDK has been initialized, otherwise returns null.
+
+```Kotlin
+	apis(): Apis?
+```
+Returns the [Apis module](#Roles) if the SDK has been initialized, otherwise returns null.
 
 ---
 
-#### Using Git
+### Apps
 
-Note: if you are not on the desired branch you can change it using the command:
+```Kotlin
+   	//Get all the apps associated with the domain given during the initialization.  
+   	fun getApps(
+        	onSuccess: (List<App>) -> Unit,
+        	onFailure: (ErrorResponse) -> Unit
+    	)
+```
+onSuccess - Function that will be executed if the request succeeds. Returns a List of [Applications](#Apps).  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
 
-````
-			git checkout -b BRANCH_NAME <tag_name>
-````
+```Kotlin
+	//Create a new Application
+	fun createApp(
+        	appName: String,
+        	appTypeId: Int,
+        	token: String,
+        	onSuccess: (Boolean) -> Unit,
+        	onFailure: (ErrorResponse) -> Unit
+    	)
+```
+appName - Application name.  
+appTypeId - Application type.  
+token - Application token.  
+onSuccess - Function that will be executed if the request succeeds. Returns true.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
 
-Using the terminal, add your changes using 
+```Kotlin
+	//Get application by id
+	fun getAppById(
+        	appId: Int,
+        	onSuccess: (App) -> Unit,
+        	onFailure: (ErrorResponse) -> Unit
+    	) {
+```
+appId - Application id.  
+onSuccess - Function that will be executed if the request succeeds. Returns a [app](#Apps) object.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
 
-````
-			git add -A
-````
+```Kotlin
+	//Deletes an Application
+   	fun deleteApp(
+        	appId: Int,
+        	onSuccess: (Boolean) -> Unit,
+        	onFailure: (ErrorResponse) -> Unit
+        )
+```
+appId - Application id.  
+onSuccess - Function that will be executed if the request succeeds. Returns true.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
 
-then commit your changes to the respective branch.
-
-````
-			git commit -m "YOUR MESSAGE"
-````
-
-create a new tag for your release:
-
-````
-			git tag 'YOUR_TAG'
-````
-
-and finally push your changes with the respective tags
-
-````
-			git push origin --tags
-````
+```Kotlin
+	//Updates an Application
+	fun updateApp(
+        	appId: Int,
+        	appName: String,
+        	appTypeId: Int,
+        	onSuccess: (Boolean) -> Unit,
+        	onFailure: (ErrorResponse) -> Unit
+    	)
+```
+appId - Application id.  
+appName - Application name.  
+appTypeId - Application type.  
 
 ---
 
-Some examples of common tags for android libraries are: '0.0.1', '1.0.0', '3.1.2'
+### Auth
+
+Contains all the authentication methods.
+
+```Kotlin
+   	//Authentication with facial recognition.
+   	fun photo(
+        	photoB64: String,
+        	onSuccess: (PhotoResponse) -> Unit,
+        	onFailure: (ErrorResponse) -> Unit
+    	)
+```
+photoB64 - Photo in Base64 format. Make sure the image is not over 1mb.  
+onSuccess - Function that will be executed if the request succeeds. Returns a [PhotoResponse](#PhotoResponse) object that contains information about the authenticated user.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+---
+
+### DevicePosition
+
+```Kotlin
+    fun getAllDevicePositions(
+        onSuccess: (List<DevicePositionResponse>) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+onSuccess - Function that will be executed if the request succeeds. Returns a List of [DevicePositionResponse](#DevicePositionResponse).  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun newDevicePosition(
+        latitude: String,
+        longitude: String,
+        onSuccess: (Boolean) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+Note: This method links this position to your device's identification. Use the next method to associate to a specific device id.  
+latitude - Latitude of the current position.  
+longititude - Longitude of the current position.  
+onSuccess - Function that will be executed if the request succeeds. Returns true.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun newDevicePosition(
+        deviceId: Int,
+        latitude: String,
+        longitude: String,
+        onSuccess: (Boolean) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+deviceId - Device id.  
+latitude - Latitude of the current position.  
+longititude - Longitude of the current position.  
+onSuccess - Function that will be executed if the request succeeds. Returns true.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun deleteDevicePosition(
+        devicePositionId: Int,
+        onSuccess: (Boolean) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    ) {
+```
+devicePositionId - id of the device position to be deleted.  
+onSuccess - Function that will be executed if the request succeeds. Returns true.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun getDevicePositionById(
+        devicePositionId: Int,
+        onSuccess: (DevicePositionResponse) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+devicePositionId - id of the device position.  
+onSuccess - Function that will be executed if the request succeeds. Returns [DevicePositionResponse](#DevicePositionResponse) object.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun getDevicePositionsByDeviceId(
+        deviceId: Int,
+        onSuccess: (List<DevicePositionResponse>) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    ) {
+```
+deviceId - Device id.  
+onSuccess - Function that will be executed if the request succeeds. Returns a List of [DevicePositionResponse](#DevicePositionResponse) associated to the device of the given deviceId.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+fun updateDevicePosition(
+        devicePositionId: Int,
+        deviceId: Int,
+        latitude: String,
+        longitude: String,
+        onSuccess: (DevicePositionResponse) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+devicePositionId - The id of the DevicePosition to be altered.  
+deviceId - Updated device id.  
+latitude - Updated latitude.  
+longititude - Updated longitude.  
+onSuccess - Function that will be executed if the request succeeds. Returns updated [DevicePositionResponse](#DevicePositionResponse).  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.
+
+```Kotlin
+ fun updateDevicePosition(
+        devicePositionId: Int,
+        latitude: String,
+        longitude: String,
+        onSuccess: (DevicePositionResponse) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    ) {
+```
+Note: Using this function the associated device will change to this device.
+devicePositionId - The id of the DevicePosition to be altered.  
+latitude - Updated latitude.  
+longititude - Updated longitude.  
+onSuccess - Function that will be executed if the request succeeds. Returns updated [DevicePositionResponse](#DevicePositionResponse).  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.
+
+### Users
+
+```Kotlin
+    fun getAllUsersCount(
+        onSuccess: (Int) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+onSuccess - Function that will be executed if the request succeeds. Returns a Integer value that represents the total user count of that application.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun getAllUsers(
+        onSuccess: (List<UserResponse>) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+onSuccess - Function that will be executed if the request succeeds. Returns a List of [UserResponse](#UserResponse) objects that contain more information about an individual user.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun getUserById(
+        userId: Int,
+        onSuccess: (UserResponse) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+userId - User id.  
+onSuccess - Function that will be executed if the request succeeds. Returns a [UserResponse](#UserResponse) object.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun getUserByFace(
+        photo: String,
+        onSuccess: (UserResponse) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+photo - An image in base64 that contains multiple faces. (You can use our [Utils class](#Utils) to convert an image to base64)  
+onSuccess - Function that will be executed if the request succeeds. Returns a List of [UserResponse](#UserResponse) objects if the API recognizes the users.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun createUser(
+        name: String,
+        optionalParameters: UserOptionalParameters.Builder,
+        onSuccess: (Boolean) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+name - Name of the user.  
+optionalParameters - Optional builder that can be used to add more information about the user. (Ex: UserOptionalParameters.Builder().setPhone("911111111"))   
+onSuccess - Function that will be executed if the request succeeds. Returns true.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun deleteUser(
+        userId: Int,
+        onSuccess: (Boolean) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+userId - User id.  
+onSuccess - Function that will be executed if the request succeeds. Returns true.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun updateUser(
+        userId: Int,
+        name: String,
+        otherParameters: UserOptionalParameters.Builder,
+        onSuccess: (UserResponse) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+userId - User id.  
+name - Updated name of the user.  
+optionalParameters - Optional builder that can be used to add more information about the user. (Ex: UserOptionalParameters.Builder().setPhone("911111111"))   
+onSuccess - Function that will be executed if the request succeeds. Returns updated [UserResponse](#UserResponse).  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun userLivenessRequest(
+        onSuccess: () -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+onSuccess - Function that will be executed if the request succeeds.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+fun verifyDocuments(
+        front: String,
+        back: String,
+        onSuccess: (String) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+front - Image in Base64 of the front of the document. (You can use our [Utils class](#Utils) to convert an image to base64)  
+back - Image in Base64 of the back of the document. (You can use our [Utils class](#Utils) to convert an image to base64)  
+onSuccess - Function that will be executed if the request succeeds. Returns the body of the response.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+```Kotlin
+    fun verifyUserByPhoto(
+        photo: String,
+        onSuccess: (UserResponse) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+photo - An image in base64 of the user. (You can use our [Utils class](#Utils) to convert an image to base64)  
+onSuccess - Function that will be executed if the request succeeds. Returns a [UserResponse](#UserResponse) object.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+
+```Kotlin
+    fun verifyUserFaceProperties(
+        photo: String,
+        onSuccess: (String) -> Unit,
+        onFailure: (ErrorResponse) -> Unit
+    )
+```
+photo - An image in base64 of the user. (You can use our [Utils class](#Utils) to convert an image to base64)  
+onSuccess - Function that will be executed if the request succeeds. Returns the body of the response.  
+onFailure - Function that will be executed if the request fails. Returns a [ErrorResponse](#ErrorResponse) object.  
+
+---
+
+
+
+---
+
+### Utils
+
+Contains functions that will help you save time.  
+
+```Kotlin
+	/* Image that will be converted to Base64 format. On iOS this method requires an UIImage, on Android this method receives a Bitmap.*/
+   	fun convertImageToBase64(image: Image): String 
+	
+	fun getDate(): String
+```
+
+---
+
+## Responses
+
+### ErrorResponse
+
+```Kotlin
+class ErrorResponse(
+	var message: String?="", 
+	var type: String?="", 
+	var status: Int?=0)
+```
+### ConfigResponse
+
+```Kotlin
+class ConfigResponse(val apps: List<App>)
+
+class App(
+	val name: String="", 
+	val token: String="")
+```
+
+### InitResponse
+
+```Kotlin
+class InitResponse(val config: Config)
+
+class Config(
+	val country: String = "",
+    	val background: String = "",
+    	val logo: String = "",
+    	val text_color: String = "",
+    	val button_color: String = "",
+    	val button_text_color: String = "",
+    	val pincode: String = "",
+    	val offline: Int = -1
+)
+```
+
+### Apps
+
+```Kotlin
+class App(
+    	val id: Int,
+    	val name: String,
+    	val token: String,
+    	val type: Type,
+    	val client: Client
+)
+
+class Type(val alias: String)
+
+class Client(
+    	val id: String,
+    	val secret: String)
+```
+
+### PhotoResponse
+
+```Kotlin
+class PhotoResponse(
+    	val name: String,
+    	val email: String
+)
+```
+
+### DevicePositionResponse
+```Kotlin
+data class DevicePositionResponse(
+    val id: Int,
+    val device_id: Int,
+    val lat: String,
+    val lng: String
+)
+```
+ 
+### UserResponse
+
+```Kotlin
+data class UserResponse(
+    val id: Int,
+    val name: String? = "",
+    val email: String = "",
+    val phone: String? = "",
+    val avatar: String? = "",
+    val info: Info? = null
+)
+
+data class Info(
+    val birthdate: String? = "",
+    val language: String? = "",
+    val photo: String? = "",
+    val data: String? = ""
+)
+```
